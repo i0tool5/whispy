@@ -14,3 +14,7 @@ Running in python virtual environment may cause `RuntimeError: Library libcublas
 LD_LIBRARY_PATH=$VIRTUAL_ENV/lib/python3.13/site-packages/nvidia/cublas/lib:$VIRTUAL_ENV/lib/python3.13/site-packages/nvidia/cudnn/lib:$LD_LIBRARY_PATH python ./src/main.py
 ```
 Note: **python3.13 must be changed to proper python version**
+
+# Run
+
+Export **TG_WHISPER_BOT_TOKEN** environment variable with telegram bot token.
