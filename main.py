@@ -1,6 +1,7 @@
-import os
-import logging
+import argparse
 import asyncio
+import logging
+import os
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.types import Message
@@ -13,8 +14,34 @@ logging.basicConfig(level=logging.INFO, format="%(name)s:%(levelname)s:%(asctime
 r = Router(name="whisper")
 
 
+def parse_cmd_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-l",
+        "--local",
+        action="store_true",
+        help="run pre-downloaded model",
+    )
+    parser.add_argument(
+        "-p",
+        "--path",
+        type=str,
+        default=".",
+        help="path to the model (pre-downloaded or to download to)",
+    )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="INFO",
+        help="logging level",
+    )
+    args = parser.parse_args()
+    return args
+
+
 @r.message(F.voice)
 async def handle_voice_message(message: Message, bot: Bot, whisper_model: WhisperModel):
+    logger = logging.getLogger(__name__)
     status_msg = await message.answer("🎙 Volice message received. Processing...")
 
     if message.voice is None:
@@ -28,10 +55,10 @@ async def handle_voice_message(message: Message, bot: Bot, whisper_model: Whispe
     
     try:
         file_info = await bot.get_file(message.voice.file_id)
-        logging.debug(f'saving file to {file_info.file_path}')
+        logger.debug(f'saving file to {file_info.file_path}')
         file_path = file_info.file_path
         if file_path is None:
-            logging.warning("file_path is empty, can't download file")
+            logger.warning("file_path is empty, can't download file")
             status_msg.edit_text("Something went wrong 😔")
             return
         
@@ -39,7 +66,7 @@ async def handle_voice_message(message: Message, bot: Bot, whisper_model: Whispe
 
         await status_msg.edit_text("⏳ Recognizing speech (STT)...")
         
-        logging.debug('running whisper')
+        logger.debug('running whisper')
         loop = asyncio.get_running_loop()
         segments, _ = await loop.run_in_executor(
             None, 
@@ -56,7 +83,7 @@ async def handle_voice_message(message: Message, bot: Bot, whisper_model: Whispe
         await status_msg.edit_text(f"🗣 **Voice message content:** _{user_text}_\n\n", parse_mode="Markdown")
                 
     except Exception as e:
-        logging.error(f"failed to handle: {e}")
+        logger.error(f"failed to handle: {e}")
         await status_msg.edit_text("💥 Oops! An error occurred while processing the message.")
         
     finally:
@@ -70,13 +97,17 @@ async def handle_text_message(message: Message):
     await message.answer("🗣️ Would you kindly send me a voice message?")
 
 async def main():
-    logging.info("Loading Whisper model...")
+    args = parse_cmd_args()
+    logger = logging.getLogger(__name__)
+    log_level: str = args.log_level
+    logger.setLevel(log_level.upper())
+    logger.info("Loading Whisper model...")
     whisper_model = WhisperModel(
         "medium", # using medium model
         device="auto", # automatically choosing device to run on
         compute_type="float16",
-        download_root=".", # downloading model locally
-        local_files_only=True, # using local files
+        download_root=args.path, # download model locally
+        local_files_only=args.local, # allow to load Faster Whisper from Hugging Face
     )
 
     BOT_TOKEN = os.getenv("TG_WHISPER_BOT_TOKEN") or ""
@@ -84,7 +115,7 @@ async def main():
 
     dp = Dispatcher()
     dp.include_router(router=r)
-    logging.info("bot started")
+    logger.info("bot started")
     await dp.start_polling(
         bot,
         whisper_model=whisper_model,
