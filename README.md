@@ -8,13 +8,12 @@ If using NVidia adapter, CUDA providers must be installed
 ```
 pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
 ```
+# Run
+
+Export **TG_WHISPER_BOT_TOKEN** environment variable with telegram bot token and run `python main.py`
 
 Running in python virtual environment may cause `RuntimeError: Library libcublas.so.12 is not found or cannot be loaded` error, even when CUDA providers are installed. Command below fix this behavior:
 ```
-LD_LIBRARY_PATH=$VIRTUAL_ENV/lib/python3.13/site-packages/nvidia/cublas/lib:$VIRTUAL_ENV/lib/python3.13/site-packages/nvidia/cudnn/lib:$LD_LIBRARY_PATH python ./src/main.py
+LD_LIBRARY_PATH=$VIRTUAL_ENV/lib/python3.13/site-packages/nvidia/cublas/lib:$VIRTUAL_ENV/lib/python3.13/site-packages/nvidia/cudnn/lib:$LD_LIBRARY_PATH python main.py
 ```
 Note: **python3.13 must be changed to proper python version**
-
-# Run
-
-Export **TG_WHISPER_BOT_TOKEN** environment variable with telegram bot token.
